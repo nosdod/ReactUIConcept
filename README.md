@@ -18,6 +18,10 @@ Material-UI is just one of many UI libraries available.
 
 ## To run it
 npm install
+
 npm start
 
-open a browser at http://localhost:3000
+Open a browser at http://localhost:3000
+
+## Screenshot
+![drawing](./Screenshot Entropy Loader.png)
