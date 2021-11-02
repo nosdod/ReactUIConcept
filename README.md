@@ -24,4 +24,4 @@ npm start
 Open a browser at http://localhost:3000
 
 ## Screenshot
-![drawing](./Screenshot Entropy Loader.png)
+See Screenshot Entropy Loader.png
