@@ -1,46 +1,44 @@
 import * as React from 'react';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
+import Box from '@mui/material/Box';
 import Title from './Title';
 
-function getStatus(size,criticalLimit,warningLimit) {
-  if ( size < criticalLimit )
+function getStatus(status) {
+  if ( status === "CRITICAL" )
     return "error"
-  else if ( size < warningLimit )
+  else if ( status === "WARNING" )
     return "warning"
   else
     return "success"
 }
 
-function getStatusName(size,criticalLimit,warningLimit) {
-  if ( size < criticalLimit )
+function getStatusText(status) {
+  if ( status === "CRITICAL" )
     return "Level Critical"
-  else if ( size < warningLimit )
+  else if ( status === "WARNING" )
     return "Level Warning"
   else
     return "Level OK"
 }
 
-export default function EntropyStatusValue(props) {
-  const [size,setSize] = React.useState(props.size);
-  const [criticalLimit,setCriticalLimit] = React.useState(props.criticalLimit);
-  const [warningLimit,setWarningLimit] = React.useState(props.warningLimit);
-
-  React.useEffect(() => {
-    //Runs on the first render and when props change
-    setSize(props.size);
-    setCriticalLimit(props.criticalLimit);
-    setWarningLimit(props.warningLimit);
-  }, [props]);
+export default function EntropyStatusValue({size,status}) {
   return (
-    <React.Fragment>
+    <Box
+      component="form"
+      sx={{
+        '& .MuiTextField-root': { m: 1, width: '25ch' },
+      }}
+      noValidate
+      autoComplete="off"
+    >
       <Title>Entropy Status</Title>
-      <Typography component="p" variant="h4">
-        <Chip label={size} color={getStatus(size,criticalLimit,warningLimit)}/> bytes
+      <Typography variant="h4">
+        <Chip label={size} color={getStatus(status)}/> bytes
       </Typography>
       <Typography color="text.secondary" sx={{ flex: 1 }}>
-        Status {getStatusName(size,criticalLimit,warningLimit)}
+        Status {getStatusText(status)}
       </Typography>
-    </React.Fragment>
+    </Box>
   );
 }

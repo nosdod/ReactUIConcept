@@ -5,22 +5,27 @@ import MuiDrawer from '@mui/material/Drawer';
 import Box from '@mui/material/Box';
 import MuiAppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
-import List from '@mui/material/List';
 import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
-import Badge from '@mui/material/Badge';
 import Container from '@mui/material/Container';
 import Grid from '@mui/material/Grid';
 import Paper from '@mui/material/Paper';
 import Link from '@mui/material/Link';
 import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import NotificationsIcon from '@mui/icons-material/Notifications';
-import { mainListItems, secondaryListItems } from './listItems';
+import Navigation from './Navigation';
 import EntropyStatusValue from './EntropyStatusValue';
-import EntropyFileChooser from './EntropyFileChooser';
-import User from './User';
+import FileChooser from './FileChooser';
+import Credentials from './Credentials';
+import About from './About';
+import axios from 'axios';
+
+import Settings from './settings.json';
+
+const getEntropyStatusUrl = Settings.serviceUrl + Settings.getEntropyStatusEndpoint;
+const uploadEntropyUrl = Settings.serviceUrl + Settings.uploadEntropyEndpoint;
+const checkCredentialsUrl = Settings.serviceUrl + Settings.checkCredentialsEndpoint;
 
 function Copyright(props) {
   return (
@@ -85,31 +90,155 @@ const mdTheme = createTheme();
 
 function DashboardContent(props) {
   const [open, setOpen] = React.useState(true);
-  const [entropySize, setEntropySize] = React.useState(-1);
-  const [entropyFile, setEntropyFile] = React.useState("entropy.epy");
+  const [aboutIsOpen, setAboutIsOpen] = React.useState(false);
+  const [entropyFile, setEntropyFile] = React.useState({name:''});
+  const [entropyStatus, setEntropyStatus] = React.useState({ entropySize : 0, entropyStatus : 'NORMAL'});
+  const [smCreds, setSmCreds] = React.useState({ usertype : 'SM', username: 'SM User', password: '', valid : false});
+  const [kgmCreds, setKgmCreds] = React.useState({ usertype : 'KGM', username: 'KGM User', password: '', valid : false});
+  
   const toggleDrawer = () => {
     setOpen(!open);
-    setEntropySize(entropySize + 10000);
   };
 
-  // Function to update the chosen file
-  const chosenEntropyFile = (entropyFile) => {
-    setEntropyFile(entropyFile);
+  const getEntropyStatus = () => {
+    fetch( getEntropyStatusUrl, {mode : "cors"} )
+    .then( (response) => {
+        return response.json();
+    })
+    .then( (data) => {
+      console.log( "New Entropy Status = " );
+      console.log( data );
+      setEntropyStatus( data );
+    });
   }
+
+  // This is creates a declarative version of setInterval that plays well with React 
+  // (https://overreacted.io/making-setinterval-declarative-with-react-hooks/)
+  function useInterval(callback, delay) {
+    const savedCallback = React.useRef();
   
-  React.useEffect(() => {
-  let timer = setTimeout(() => {
-    if ( entropySize >= 200) {
-      setEntropySize(entropySize-200);
-    } else if ( entropySize > 0 ) {
-      setEntropySize(0);
+    React.useEffect(() => {
+      savedCallback.current = callback;
+    });
+  
+    React.useEffect(() => {
+      function tick() {
+        savedCallback.current();
+      }
+  
+      let id = setInterval(tick, delay);
+      return () => clearInterval(id);
+    }, [delay]);
+  }
+
+  // Refresh entropy status
+  useInterval(() => {
+      getEntropyStatus();
+  }, 3000);
+
+  const showAbout = () => {
+    setAboutIsOpen(true);
+  }
+
+  const closeAbout = () => {
+    setAboutIsOpen(false);
+  }
+
+  const checkCredentials = (usertype,newUsername,newPassword) => {
+    if ( usertype === 'SM' ) {
+      const newCreds = { ...smCreds, username : newUsername , password : newPassword };
+      setSmCreds(newCreds);
+      uploadCredentials(newCreds)
+    } else {
+      const newCreds = { ...kgmCreds, username : newUsername , password : newPassword };
+      setKgmCreds( newCreds );
+      uploadCredentials(newCreds);
     }
-  }, 1000);
-  return () => clearTimeout(timer)
-  });
+    console.log("Checking credentials for " + usertype + " user updated : username = " +  newUsername + " password = " + newPassword);
+  }
+
+  const chooseEntropyFile = (file) => {
+    setEntropyFile(file);
+  }
+
+  const uploadCredentials = (credentials) => {
+    // Details of the creds to be uploaded
+    console.log("uploading credentials");
+    console.log(credentials);
+  
+    // Create an object of formData
+    const formData = new FormData();
+    
+    // Update the formData object
+    formData.append(
+      "credentials", JSON.stringify(credentials)
+    );
+  
+    console.log( checkCredentialsUrl);
+
+    // Request made to the backend api
+    // Send formData object
+    axios.post(checkCredentialsUrl, formData)
+    .then( (data) => {
+      let isValid = false;
+      console.log( data );
+      if ( data.data === 'OK' ) {
+        isValid = true;
+      }
+
+      if ( credentials.usertype === 'SM' ) {
+        setSmCreds( { ...smCreds, valid : isValid });
+      } else {
+        setKgmCreds( { ...kgmCreds, valid : isValid });
+      }
+    });
+  }
+
+  const checkDataValid = () => {
+    let valid = true;
+    if ( entropyFile.name === '' ) {
+      alert( 'Entropy file has not been selected');
+      valid = false;
+    }
+
+    if ( !smCreds.valid ) {
+      alert( 'SM User creds have not been successfully validated');
+      valid = false;
+    }
+
+    if ( !kgmCreds.valid ) {
+      alert( 'KGM User creds have not been successfully validated');
+      valid = false;
+    }
+
+    return valid;
+  }
+
+  const uploadEntropy = () => {
+    if ( checkDataValid() ) {
+
+      // Details of the uploaded file
+      console.log(entropyFile);
+    
+      // Create an object of formData
+      const formData = new FormData();
+      
+      // Update the formData object
+      formData.append(
+        "newFile",
+        entropyFile,
+        entropyFile.name
+      );
+    
+      // Request made to the backend api
+      // Send formData object
+      axios.post(uploadEntropyUrl, formData);
+    }
+}
 
   return (
     <ThemeProvider theme={mdTheme}>
+      <About showAbout={aboutIsOpen} closeAbout={closeAbout}/>
       <Box sx={{ display: 'flex' }}>
         <CssBaseline />
         <AppBar position="absolute" open={open}>
@@ -137,13 +266,8 @@ function DashboardContent(props) {
               noWrap
               sx={{ flexGrow: 1 }}
             >
-              Entropy Dashboard
+              Entropy Manager Dashboard
             </Typography>
-            <IconButton color="inherit">
-              <Badge badgeContent={4} color="secondary">
-                <NotificationsIcon />
-              </Badge>
-            </IconButton>
           </Toolbar>
         </AppBar>
         <Drawer variant="permanent" open={open}>
@@ -160,9 +284,7 @@ function DashboardContent(props) {
             </IconButton>
           </Toolbar>
           <Divider />
-          <List>{mainListItems}</List>
-          <Divider />
-          <List>{secondaryListItems}</List>
+          <Navigation uploadEntropy={uploadEntropy} showAbout={showAbout} />
         </Drawer>
         <Box
           component="main"
@@ -189,36 +311,37 @@ function DashboardContent(props) {
                     height: 140,
                   }}
                 >
-                  <EntropyStatusValue size={entropySize} criticalLimit={5000} warningLimit={20000}/>
+                  <EntropyStatusValue size={entropyStatus.entropySize} status={entropyStatus.entropyStatus}/>
                 </Paper>
               </Grid>
-              {/* Entropy File Chooser */}
               <Grid item xs={12}>
                 <Paper
                   sx={{
                     p: 2,
                     display: 'flex',
                     flexDirection: 'column',
-                    height: 80,
+                    height: 140,
                   }}
                 >
-                  <EntropyFileChooser filename={entropyFile} criticalLimit={5000} warningLimit={20000} fileSelected={chosenEntropyFile}/>
+                  <FileChooser file={entropyFile} fileSelected={chooseEntropyFile}/>
                 </Paper>
               </Grid>
-              {/* SM User Details */}
               <Grid item xs={12}>
-                <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
-                  <User usertype="SM" username="SM User" password=""/>
+                <Paper
+                  sx={{
+                    p: 2,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    height: 280,
+                  }} 
+                > 
+                  <Credentials checkCredentials={checkCredentials} smCreds={smCreds} kgmCreds={kgmCreds}/>
                 </Paper>
               </Grid>
-              {/* KGM User Details */}
               <Grid item xs={12}>
-                <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
-                  <User usertype="KGM" username="KGM User" password=""/>
-                </Paper>
-              </Grid>
-            </Grid>
-            <Copyright sx={{ pt: 4 }} />
+                <Copyright sx={{ pt: 4 }} />
+                </Grid>
+              </Grid>  
           </Container>
         </Box>
       </Box>

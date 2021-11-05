@@ -1,0 +1,11 @@
+{
+    "serviceUrl" : "http://localhost:4000",
+    "getEntropyStatusEndpoint" : "/entropy-status",
+    "uploadEntropyEndpoint" : "/upload",
+    "checkCredentialsEndpoint" : "/check-credentials",
+    "entropyFile" : "entropy.dat",
+    "thresholds"  : {
+        "critical" : 10000,
+        "warning" : 1000000
+    }
+}

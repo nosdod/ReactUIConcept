@@ -1,30 +1,37 @@
 import * as React from 'react';
 import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
-import { Fab } from '@mui/material';
+import { Fab,Chip } from '@mui/material';
 
-export default function User(props) {
-  const [usertype,setUsertype] = React.useState(props.usertype);
-  const [username,setUsername] = React.useState(props.username);
-  const [password,setPassword] = React.useState(props.password);
-  
-  React.useEffect(() => {
-    //Runs on the first render and when props change
-    setUsertype(props.usertype);
-    setUsername(props.username);
-    setPassword(props.password);
-  }, [props]);
+export default function User({checkCredentials,usertype,username,password,credsValid}) {
+  const [newUsername,setNewUsername] = React.useState(username);
+  const [newPassword,setNewPassword] = React.useState(password);
 
   function getUsernameHelperText( usertype ) {
     return "Enter the " + usertype + " account username"
   }
 
   function confirmOnclick() {
-    console.log("User details confirmed");
+    console.log( 'Confirm new credentials ' + usertype + ' ' + newUsername + ' ' + newPassword);
+    checkCredentials( usertype,newUsername,newPassword );
+  }
+
+  function getCheckStatus(status) {
+    return status ? 'success' : 'error'
   }
 
   function getPasswordHelperText( usertype ) {
     return "Enter the " + usertype + " account password"
+  }
+
+  const passwordChange = (e) => {
+    console.log('New Password ' + e.target.value);
+    setNewPassword( e.target.value );
+  }
+
+  const usernameChange = (e) => {
+    console.log('New Username ' + e.target.value);
+    setNewUsername( e.target.value );
   }
 
   return (
@@ -36,28 +43,27 @@ export default function User(props) {
       noValidate
       autoComplete="off"
     >
-      <div>
         <TextField
           required
-          id="user"
           label="User"
           helperText={getUsernameHelperText(usertype)}
+          onChange={usernameChange}
           defaultValue={username}
         />
         <TextField
-          id="password"
           label="Password"
           helperText={getPasswordHelperText(usertype)}
           type="password"
+          onChange={passwordChange}
           defaultValue={password}
         />
         <Fab 
           variant="extended"
           onClick={confirmOnclick}  
           >
-            Confirm
+            Validate
         </Fab>
-      </div>
+        <Chip label='Confirmed' color={getCheckStatus(credsValid)}/>
     </Box>
   );
 }
