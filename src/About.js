@@ -1,5 +1,6 @@
 import React from 'react';
 import Modal from 'react-modal';
+import Settings from './settings.json';
 
 const customStyles = {
   content: {
@@ -36,6 +37,8 @@ export default function About(props) {
         contentLabel="About Entropy Manager"
     >
         <h2 ref={(_subtitle) => (subtitle = _subtitle)}>About</h2>
+
+        <h3>URL {Settings.serviceUrl}</h3>
         <button onClick={closeModal}>close</button>
         <div>Entropy Manager</div>
     </Modal>

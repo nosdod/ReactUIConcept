@@ -23,6 +23,7 @@ import axios from 'axios';
 
 import Settings from './settings.json';
 
+const getWhoamiUrl = Settings.serviceUrl + Settings.whoamiEndpoint;
 const getEntropyStatusUrl = Settings.serviceUrl + Settings.getEntropyStatusEndpoint;
 const uploadEntropyUrl = Settings.serviceUrl + Settings.uploadEntropyEndpoint;
 const checkCredentialsUrl = Settings.serviceUrl + Settings.checkCredentialsEndpoint;
@@ -88,11 +89,24 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
 
 const mdTheme = createTheme();
 
+// Handles responses from either the Java server or the Node server
+function adaptDataAsRequired( entropyStatus ) {
+  let adaptedEntropyStatus = entropyStatus;
+
+  if ( !entropyStatus.entropySize ) {
+    adaptedEntropyStatus.entropySize = entropyStatus.bytecount;
+    adaptedEntropyStatus.entropyStatus = entropyStatus.status;
+  }
+
+  return adaptedEntropyStatus;
+}
+
 function DashboardContent(props) {
   const [open, setOpen] = React.useState(true);
   const [aboutIsOpen, setAboutIsOpen] = React.useState(false);
   const [entropyFile, setEntropyFile] = React.useState({name:''});
   const [entropyStatus, setEntropyStatus] = React.useState({ entropySize : 0, entropyStatus : 'NORMAL'});
+  const [whoami, setWhoami] = React.useState("");
   const [smCreds, setSmCreds] = React.useState({ usertype : 'SM', username: 'SM User', password: '', valid : false});
   const [kgmCreds, setKgmCreds] = React.useState({ usertype : 'KGM', username: 'KGM User', password: '', valid : false});
   
@@ -108,9 +122,25 @@ function DashboardContent(props) {
     .then( (data) => {
       console.log( "New Entropy Status = " );
       console.log( data );
-      setEntropyStatus( data );
+      setEntropyStatus( adaptDataAsRequired(data) );
     });
   }
+
+  const getWhoami = () => {
+    fetch( getWhoamiUrl, {mode : "cors"} )
+    .then( (response) => {
+        return response.json();
+    })
+    .then( (data) => {
+      console.log( "Whoami = " );
+      console.log( data );
+      setWhoami( data.message );
+    });
+  }
+
+  React.useEffect(()=>{
+    getWhoami();
+  },[]);
 
   // This is creates a declarative version of setInterval that plays well with React 
   // (https://overreacted.io/making-setinterval-declarative-with-react-hooks/)
@@ -166,23 +196,19 @@ function DashboardContent(props) {
     console.log("uploading credentials");
     console.log(credentials);
   
-    // Create an object of formData
-    const formData = new FormData();
-    
-    // Update the formData object
-    formData.append(
-      "credentials", JSON.stringify(credentials)
-    );
-  
     console.log( checkCredentialsUrl);
 
+    const credentialsDTO = { userType: credentials.usertype,
+                             username: credentials.username,
+                             password: credentials.password };
+
     // Request made to the backend api
-    // Send formData object
-    axios.post(checkCredentialsUrl, formData)
-    .then( (data) => {
+    // Send credentials DTO object
+    axios.post(checkCredentialsUrl, credentialsDTO)
+    .then( (response) => {
       let isValid = false;
-      console.log( data );
-      if ( data.data === 'OK' ) {
+      console.log( response );
+      if ( response.data.userOK ) {
         isValid = true;
       }
 
@@ -225,7 +251,7 @@ function DashboardContent(props) {
       
       // Update the formData object
       formData.append(
-        "newFile",
+        "data",
         entropyFile,
         entropyFile.name
       );
@@ -266,7 +292,7 @@ function DashboardContent(props) {
               noWrap
               sx={{ flexGrow: 1 }}
             >
-              Entropy Manager Dashboard
+              Entropy Manager Dashboard (Backend server is {whoami})
             </Typography>
           </Toolbar>
         </AppBar>
