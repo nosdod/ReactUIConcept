@@ -25,3 +25,7 @@ Open a browser at http://localhost:3000
 
 ## Screenshot
 See Screenshot Entropy Loader.png
+
+## Gauge Concept
+Instead of the Colour changing Chip, we could imporve the UI with a Gauge.
+Navigate to http://localhost:3000/gauge-concept.html to see the concept.
